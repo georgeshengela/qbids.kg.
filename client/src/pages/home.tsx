@@ -117,7 +117,7 @@ export default function Home() {
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                   {t("heroMainTitle")}
                   <span className="block text-yellow-400 relative">
-                    {t("heroSubTitle")}
+                    {t("heroSubtitle")}
                     <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"></div>
                   </span>
                 </h1>
@@ -424,6 +424,7 @@ export default function Home() {
                         auction={auction}
                         startsIn={calculateTimeToStart(auction.startTime)}
                         prebidsCount={auction.prebidsCount || 0}
+
                       />
                     ))}
                   </div>

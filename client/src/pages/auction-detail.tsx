@@ -35,6 +35,7 @@ export default function AuctionDetail() {
   const { data: bids = [] } = useQuery<Bid[]>({
     queryKey: ["/api/auctions", auction?.id, "bids"],
     enabled: !!auction?.id,
+    refetchInterval: 1000,
   });
 
   // Fetch complete auction statistics
@@ -483,7 +484,7 @@ export default function AuctionDetail() {
                       {auction.status === "live" && (
                         <Button
                           onClick={handleBid}
-                          disabled={bidMutation.isPending || !isAuthenticated}
+                          disabled={bidMutation.isPending || !isAuthenticated || (bids[0] && !bids[0].isBot && bids[0].user?.id === user?.id)}
                           className="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white py-4 text-sm sm:text-lg font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                         >
                           {bidMutation.isPending ? (
@@ -494,7 +495,7 @@ export default function AuctionDetail() {
                           ) : (
                             <>
                               <i className="fas fa-gavel mr-2"></i>
-                              {t("placeBid")} ({t("oneBid")} = +{formatCurrency(0.01)})
+                              {`${t("placeBid")} (${t("oneBid")} = +${formatCurrency(0.01)})`}
                             </>
                           )}
                         </Button>

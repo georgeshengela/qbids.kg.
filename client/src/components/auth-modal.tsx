@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,8 +89,11 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   const { t } = useLanguage();
   const { siteName } = useSettings();
 
+  const loginSchema = useMemo(() => createLoginSchema(t), [t]);
+  const registerSchema = useMemo(() => createRegisterSchema(t), [t]);
+
   const loginForm = useForm<LoginData>({
-    resolver: zodResolver(createLoginSchema(t)),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       username: "",
       password: "",
@@ -98,7 +101,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   });
 
   const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(createRegisterSchema(t)),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -113,7 +116,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   });
 
   // Live validation functions
-  const validateField = async (field: 'username' | 'email' | 'phone', value: string) => {
+  const validateField = useCallback(async (field: 'username' | 'email' | 'phone', value: string) => {
     if (!value || value.length < 3) {
       setValidationState(prev => ({
         ...prev,
@@ -144,7 +147,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
     } finally {
       setValidatingField(null);
     }
-  };
+  }, []);
 
   // Debounced validation
   const debounce = (func: Function, delay: number) => {
@@ -155,9 +158,18 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
     };
   };
 
-  const debouncedValidateUsername = debounce((value: string) => validateField('username', value), 500);
-  const debouncedValidateEmail = debounce((value: string) => validateField('email', value), 500);
-  const debouncedValidatePhone = debounce((value: string) => validateField('phone', value), 500);
+  const debouncedValidateUsername = useMemo(
+    () => debounce((value: string) => validateField('username', value), 500),
+    [validateField]
+  );
+  const debouncedValidateEmail = useMemo(
+    () => debounce((value: string) => validateField('email', value), 500),
+    [validateField]
+  );
+  const debouncedValidatePhone = useMemo(
+    () => debounce((value: string) => validateField('phone', value), 500),
+    [validateField]
+  );
 
   const handleLogin = async (data: LoginData) => {
     try {
@@ -172,7 +184,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
     } catch (error: any) {
       toast({
         title: t("loginError"),
-        description: error.message || t("invalidCredentials"),
+        description: t("invalidCredentials"),
         variant: "destructive",
       });
     }
@@ -218,7 +230,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="w-full h-full max-w-none max-h-none m-0 p-0 rounded-none md:w-[95vw] md:max-w-lg md:mx-auto md:h-auto md:max-h-[90vh] md:rounded-xl md:p-0 bg-white border-0 shadow-2xl overflow-y-auto">
         <div className="flex flex-col h-full">
           {/* Header Section */}

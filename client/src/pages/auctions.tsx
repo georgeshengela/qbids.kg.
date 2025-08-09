@@ -1,15 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useSocket } from "@/hooks/use-socket";
 import { useLanguage } from "@/hooks/use-language";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { UpcomingAuctionCard } from "@/components/upcoming-auction-card";
 import { Button } from "@/components/ui/button";
+import { socketService } from "@/lib/socket";
 import type { Auction } from "@/types/auction";
 
 export default function Auctions() {
+  const [timers, setTimers] = useState<Record<string, number>>({});
   const { t } = useLanguage();
+  const { connected } = useSocket();
+
   useDocumentTitle(`${t("upcomingAuctions")} - QBIDS.KG | Скоро начнутся новые торги`);
   const [currentPage, setCurrentPage] = useState(1);
   const auctionsPerPage = 12;
@@ -22,6 +27,44 @@ export default function Auctions() {
     queryKey: ["/api/auctions"],
   });
 
+  // Fetch user's prebids to disable prebid button if already placed
+  const { data: userPrebids } = useQuery<Array<{ auction: Auction }>>({
+    queryKey: ["/api/prebids/user"],
+    enabled: true,
+    staleTime: 30000,
+  });
+  const userPrebidAuctionIds = new Set((userPrebids || []).map((p) => p.auction.id));
+  const { data: timerData } = useQuery<Record<string, number>>({
+    queryKey: ["/api/timers"],
+    refetchInterval: 1000,
+  });
+
+  useEffect(() => {
+    if (timerData) {
+      setTimers(timerData);
+    }
+  }, [timerData]);
+
+  useEffect(() => {
+    if (connected) {
+      socketService.onTimerUpdate((newTimers) => {
+        setTimers(newTimers);
+      });
+
+      socketService.onAuctionUpdate((data) => {
+        if (data.timers) {
+          setTimers(data.timers);
+        }
+      });
+
+      return () => {
+        socketService.offTimerUpdate();
+        socketService.offAuctionUpdate();
+      };
+    }
+  }, [connected]);
+  
+  
   const calculateTimeToStart = (startTime: string): number => {
     const start = new Date(startTime).getTime();
     const now = Date.now();
@@ -60,7 +103,7 @@ export default function Auctions() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="max-w-[1504px] mx-auto py-8">
+      <main className="max-w-[1504px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 relative">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             {/* Page Header */}
@@ -98,7 +141,8 @@ export default function Auctions() {
                       key={auction.id}
                       auction={auction}
                       startsIn={calculateTimeToStart(auction.startTime)}
-                      prebidsCount={0} // TODO: Fetch prebids count
+                      prebidsCount={auction.prebidsCount || 0}
+                      hasPrebid={userPrebidAuctionIds.has(auction.id)}
                     />
                   ))}
                 </div>

@@ -1,0 +1,6 @@
+node_modules
+scripts
+migrations
+package-lock.json
+dist
+.env

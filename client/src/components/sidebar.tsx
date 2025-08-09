@@ -23,8 +23,9 @@ export function Sidebar() {
 
   return (
     <div className="space-y-6">
+      {/* BACHO TOLD ME TO REMOVE THIS SECTION FOR NOW */}
       {/* Live Bidding Activity */}
-      <div className="bg-white rounded-xl shadow-md">
+      {/* <div className="bg-white rounded-xl shadow-md">
         <div className="p-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-900">
             <i className="fas fa-activity text-red-500 mr-2"></i>
@@ -52,10 +53,10 @@ export function Sidebar() {
             )}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* User Stats */}
-      {isAuthenticated && userStats && (
+      {/* {isAuthenticated && userStats && (
         <div className="bg-white rounded-xl shadow-md">
           <div className="p-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">
@@ -82,7 +83,7 @@ export function Sidebar() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
 
       {/* Quick Actions */}
