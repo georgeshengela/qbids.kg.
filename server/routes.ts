@@ -146,10 +146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: z.string().optional(),
         username: z.string().min(3, "Имя пользователя должно содержать минимум 3 символа"),
         email: z.string().email("Неверный формат email"),
-        phone: z.string().regex(/^\+996\d{9}$/, "Номер должен быть в формате +996XXXXXXXXX"),
+        phone: z.string().regex(/^\+996\d{9}$/, "Номер должен быть в формате +996XXXXXXXXX").optional(),
         password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
-        dateOfBirth: z.string().min(1, "Дата рождения обязательна"),
-        gender: z.enum(["male", "female", "other"], { required_error: "Пол обязателен" }),
+        dateOfBirth: z.string().optional(),
+        gender: z.enum(["male", "female", "other"]).optional(),
       }).parse(req.body);
       
       // Check for existing users
@@ -163,22 +163,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email уже зарегистрирован" });
       }
 
-      const existingPhone = await storage.getUserByPhone(registerData.phone);
-      if (existingPhone) {
-        return res.status(400).json({ error: "Номер телефона уже зарегистрирован" });
+      // Check phone if provided
+      if (registerData.phone) {
+        const existingPhone = await storage.getUserByPhone(registerData.phone);
+        if (existingPhone) {
+          return res.status(400).json({ error: "Номер телефона уже зарегистрирован" });
+        }
       }
 
-      // Validate age
-      const birthDate = new Date(registerData.dateOfBirth);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
-        ? age - 1 
-        : age;
-      
-      if (actualAge < 18) {
-        return res.status(400).json({ error: "Вам должно быть минимум 18 лет для регистрации" });
+      // Validate age if date of birth is provided
+      if (registerData.dateOfBirth) {
+        const birthDate = new Date(registerData.dateOfBirth);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
+          ? age - 1 
+          : age;
+        
+        if (actualAge < 18) {
+          return res.status(400).json({ error: "Вам должно быть минимум 18 лет для регистрации" });
+        }
       }
 
       const hashedPassword = await bcrypt.hash(registerData.password, 10);
@@ -190,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: registerData.email,
         phone: registerData.phone,
         password: hashedPassword,
-        dateOfBirth: new Date(registerData.dateOfBirth),
+        dateOfBirth: registerData.dateOfBirth ? new Date(registerData.dateOfBirth) : undefined,
         gender: registerData.gender,
         bidBalance: 5, // Starting bid balance
         role: "user",

@@ -72,8 +72,12 @@ export class BotService {
   private auctionLocks = new Map<string, boolean>();
 
   async checkAndPlaceBotBid(auctionId: string, currentTimer: number): Promise<void> {
-    // Bid when timer is at 4 seconds OR when timer is getting low and multiple bots are active
-    if (currentTimer !== 4 && currentTimer !== 2) {
+    // Add some randomization to prevent predictable bidding loops
+    // Only bid at 4 seconds with 70% chance, or at 2 seconds with 50% chance
+    const shouldBidAt4 = currentTimer === 4 && Math.random() < 0.7;
+    const shouldBidAt2 = currentTimer === 2 && Math.random() < 0.5;
+    
+    if (!shouldBidAt4 && !shouldBidAt2) {
       return;
     }
 

@@ -75,21 +75,16 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
+    mutationFn: async (credentials: { username: string; email: string; password: string }) => {
       const response = await apiRequest("POST", "/api/auth/register", credentials);
       return response.json() as Promise<AuthResponse>;
     },
     onSuccess: (data) => {
       globalUser = data.user;
       setUser(data.user);
-      // Set flag in localStorage to show welcome modal
-      localStorage.setItem('showWelcomeModal', 'true');
-      console.log('Registration success - setting localStorage flag and showing modal in 500ms');
-      // Show welcome modal after a short delay to ensure auth modal closes first
-      setTimeout(() => {
-        console.log('Timeout reached - showing welcome modal');
-        setShowWelcomeModal(true);
-      }, 500);
+      // Set flag in localStorage to show complete profile modal
+      localStorage.setItem('showCompleteProfileModal', 'true');
+      console.log('Registration success - setting localStorage flag for profile completion');
       // Invalidate all queries to refresh data after registration
       queryClient.invalidateQueries();
     },

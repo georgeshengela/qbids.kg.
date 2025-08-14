@@ -1,17 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLanguage } from "@/hooks/use-language";
+import { useSocket } from "@/hooks/use-socket";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { UpcomingAuctionCard } from "@/components/upcoming-auction-card";
 import { Button } from "@/components/ui/button";
+import { socketService } from "@/lib/socket";
 import type { Auction } from "@/types/auction";
 
 export default function Auctions() {
   const { t } = useLanguage();
   useDocumentTitle(`${t("upcomingAuctions")} - QBIDS.KG | Скоро начнутся новые торги`);
+  const { connected } = useSocket();
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const auctionsPerPage = 12;
   
   const { data: auctionsData, isLoading } = useQuery<{
@@ -24,9 +28,31 @@ export default function Auctions() {
 
   const calculateTimeToStart = (startTime: string): number => {
     const start = new Date(startTime).getTime();
-    const now = Date.now();
-    return Math.max(0, Math.floor((start - now) / 1000));
+    return Math.max(0, Math.floor((start - currentTime) / 1000));
   };
+
+  // Update current time every second for real-time countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Socket connection for real-time updates
+  useEffect(() => {
+    if (connected) {
+      socketService.onAuctionUpdate(() => {
+        // Trigger rerender for any auction updates
+        setCurrentTime(Date.now());
+      });
+
+      return () => {
+        socketService.offAuctionUpdate();
+      };
+    }
+  }, [connected]);
 
   // Pagination logic
   const upcomingAuctions = auctionsData?.upcoming || [];

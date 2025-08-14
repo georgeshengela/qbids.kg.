@@ -123,6 +123,7 @@ export const translations = {
     // Profile Page
     editProfile: "Редактировать профиль",
     accountSettings: "Настройки аккаунта",
+    topUpBalance: "Пополнить баланс",
     bidHistoryPage: "История ставок",
     wonItems: "Выигранные товары",
     accountBalance: "Баланс аккаунта",
