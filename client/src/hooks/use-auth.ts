@@ -15,6 +15,7 @@ interface AuthResponse {
 
 let globalUser: User | null = null;
 let globalLoading = true;
+let authInitPromise: Promise<void> | null = null;
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -34,31 +35,34 @@ export function useAuth() {
   }, [user]);
 
   useEffect(() => {
-    if (globalLoading) {
-      // Only check auth once on app startup
-      fetch("/api/auth/me", { credentials: "include" })
-        .then(res => {
-          if (res.ok) {
-            return res.json();
-          }
-          return { user: null };
-        })
-        .then(data => {
+    // If we've already initialized, use the cached result
+    if (!globalLoading) {
+      setUser(globalUser);
+      setIsLoading(false);
+      return;
+    }
+
+    // Start a single, shared auth initialization if not already started
+    if (!authInitPromise) {
+      authInitPromise = fetch("/api/auth/me", { credentials: "include" })
+        .then((res) => (res.ok ? res.json() : { user: null }))
+        .then((data) => {
           globalUser = data.user || null;
-          globalLoading = false;
-          setUser(globalUser);
-          setIsLoading(false);
         })
         .catch(() => {
           globalUser = null;
+        })
+        .finally(() => {
           globalLoading = false;
-          setUser(null);
-          setIsLoading(false);
+          authInitPromise = null;
         });
-    } else {
+    }
+
+    // Subscribe to the shared initialization promise
+    authInitPromise.then(() => {
       setUser(globalUser);
       setIsLoading(false);
-    }
+    });
   }, []);
 
   const loginMutation = useMutation({
