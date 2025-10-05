@@ -9,12 +9,22 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Ensure DATABASE_URL has sslmode parameter for Neon
+const getDatabaseUrl = () => {
+  let dbUrl = process.env.DATABASE_URL!;
+  // Add sslmode=require if not present (required for Neon in production)
+  if (process.env.NODE_ENV === 'production' && !dbUrl.includes('sslmode=')) {
+    dbUrl += dbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
+  }
+  return dbUrl;
+};
+
 // Configure pool for Neon/Render compatibility
 export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  connectionTimeoutMillis: 20000, // Increased for slower cloud connections
   // Neon requires SSL in production
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   // Keep connections alive to prevent termination
