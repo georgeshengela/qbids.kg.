@@ -1060,8 +1060,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Delay periodic updates to allow database connections to stabilize
+  // This is critical for Render.com where DB connections take time to establish
+  let dbReady = false;
+  
+  setTimeout(() => {
+    dbReady = true;
+    console.log("Database ready, starting periodic updates");
+  }, 3000); // Wait 3 seconds for DB connections to stabilize
+
   // Periodic updates for timers and auction status
   setInterval(async () => {
+    // Skip if database isn't ready yet
+    if (!dbReady) {
+      return;
+    }
+
     const timers = timerService.getAllTimers();
     io.emit("timerUpdate", timers);
 
@@ -1078,10 +1092,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error in periodic auction updates:", error);
+      // Don't crash the app, just log the error
     }
 
     // Check for auctions that should start
-    await auctionService.checkUpcomingAuctions();
+    try {
+      await auctionService.checkUpcomingAuctions();
+    } catch (error) {
+      console.error("Error checking upcoming auctions:", error);
+      // Don't crash the app, just log the error
+    }
   }, 1000);
 
   return httpServer;
