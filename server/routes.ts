@@ -77,6 +77,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set the io instance for other services to use
   setSocketIO(io);
 
+  // Health check endpoint for Render.com monitoring
+  app.get("/health", async (_req, res) => {
+    try {
+      // Quick database check
+      await storage.getSettings();
+      res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(503).json({ status: "error", message: "Service unavailable" });
+    }
+  });
+
   // Authentication routes
   // Live validation endpoints
   app.post("/api/auth/validate-username", async (req, res) => {

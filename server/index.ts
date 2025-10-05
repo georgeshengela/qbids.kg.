@@ -72,7 +72,16 @@ app.use((req, res, next) => {
   }, async () => {
     log(`serving on port ${port}`);
     
+    // Set server timeouts for production (Render.com compatibility)
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
+    server.requestTimeout = 60000;
+    
     // Restart live auctions after server startup
-    await auctionService.restartLiveAuctions();
+    try {
+      await auctionService.restartLiveAuctions();
+    } catch (error) {
+      console.error("Error restarting live auctions:", error);
+    }
   });
 })();
