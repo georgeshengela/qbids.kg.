@@ -77,11 +77,17 @@ app.use((req, res, next) => {
     server.headersTimeout = 66000;
     server.requestTimeout = 60000;
     
-    // Restart live auctions after server startup
-    try {
-      await auctionService.restartLiveAuctions();
-    } catch (error) {
-      console.error("Error restarting live auctions:", error);
-    }
+    // Delay auction service startup to allow database connections to stabilize
+    // This is especially important on Render.com where DB may take time to connect
+    setTimeout(async () => {
+      try {
+        log('Starting auction services...');
+        await auctionService.restartLiveAuctions();
+        log('Auction services started successfully');
+      } catch (error) {
+        console.error("Error restarting live auctions:", error);
+        console.error("The server is still running, but auction services may need manual restart");
+      }
+    }, 2000); // Wait 2 seconds after server start
   });
 })();
